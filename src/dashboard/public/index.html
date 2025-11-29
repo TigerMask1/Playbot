@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlayBot Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <div id="loading" class="loading-screen">
+      <div class="spinner"></div>
+      <p>Loading PlayBot Dashboard...</p>
+    </div>
+
+    <div id="login-page" class="page hidden">
+      <div class="login-container">
+        <div class="login-box">
+          <div class="logo">
+            <span class="logo-icon">🎮</span>
+            <h1>PlayBot</h1>
+          </div>
+          <p class="tagline">The Ultimate Customizable Discord Bot Platform</p>
+          <p class="description">Create your own unique character collection bot with custom characters, battles, economy, and more!</p>
+          <a href="/api/auth/login" class="btn btn-discord">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
+            Login with Discord
+          </a>
+          <div class="features">
+            <div class="feature">
+              <span class="feature-icon">🎭</span>
+              <span>Custom Characters</span>
+            </div>
+            <div class="feature">
+              <span class="feature-icon">⚔️</span>
+              <span>Battle System</span>
+            </div>
+            <div class="feature">
+              <span class="feature-icon">💰</span>
+              <span>Economy</span>
+            </div>
+            <div class="feature">
+              <span class="feature-icon">🎁</span>
+              <span>Events</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="dashboard-page" class="page hidden">
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <span class="logo-icon">🎮</span>
+          <span class="logo-text">PlayBot</span>
+        </div>
+        
+        <div class="server-selector">
+          <select id="server-select">
+            <option value="">Select a server...</option>
+          </select>
+        </div>
+
+        <div class="nav-section">
+          <h3>General</h3>
+          <ul class="nav-menu">
+            <li><a href="#" data-section="overview" class="active"><span class="icon">📊</span> Overview</a></li>
+            <li><a href="#" data-section="settings"><span class="icon">⚙️</span> Settings</a></li>
+            <li><a href="#" data-section="branding"><span class="icon">🎨</span> Branding</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <h3>Content</h3>
+          <ul class="nav-menu">
+            <li><a href="#" data-section="characters"><span class="icon">🎭</span> Characters</a></li>
+            <li><a href="#" data-section="moves"><span class="icon">⚡</span> Moves</a></li>
+            <li><a href="#" data-section="crates"><span class="icon">📦</span> Crates</a></li>
+            <li><a href="#" data-section="items"><span class="icon">🎒</span> Items</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <h3>Systems</h3>
+          <ul class="nav-menu">
+            <li><a href="#" data-section="economy"><span class="icon">💰</span> Economy</a></li>
+            <li><a href="#" data-section="drops"><span class="icon">🎯</span> Drops</a></li>
+            <li><a href="#" data-section="battles"><span class="icon">⚔️</span> Battles</a></li>
+            <li><a href="#" data-section="quests"><span class="icon">📜</span> Quests</a></li>
+            <li><a href="#" data-section="jobs"><span class="icon">💼</span> Jobs</a></li>
+            <li><a href="#" data-section="events"><span class="icon">🎉</span> Events</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <h3>Management</h3>
+          <ul class="nav-menu">
+            <li><a href="#" data-section="players"><span class="icon">👥</span> Players</a></li>
+            <li><a href="#" data-section="audit"><span class="icon">📋</span> Audit Log</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section super-admin-only hidden">
+          <h3>Admin</h3>
+          <ul class="nav-menu">
+            <li><a href="#" data-section="admin"><span class="icon">👑</span> Super Admin</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <img id="user-avatar" src="" alt="Avatar">
+            <span id="user-name"></span>
+          </div>
+          <button id="logout-btn" class="btn btn-sm btn-outline">Logout</button>
+        </div>
+      </nav>
+
+      <main class="main-content">
+        <header class="content-header">
+          <h1 id="section-title">Overview</h1>
+          <div class="header-actions">
+            <button id="refresh-btn" class="btn btn-outline"><span class="icon">🔄</span> Refresh</button>
+          </div>
+        </header>
+
+        <div id="content-area">
+          <div id="section-overview" class="section">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                  <h3>Total Players</h3>
+                  <p class="stat-value" id="stat-players">0</p>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">🎭</div>
+                <div class="stat-info">
+                  <h3>Characters</h3>
+                  <p class="stat-value" id="stat-characters">0</p>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-info">
+                  <h3>Total Coins</h3>
+                  <p class="stat-value" id="stat-coins">0</p>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">⚔️</div>
+                <div class="stat-info">
+                  <h3>Active 24h</h3>
+                  <p class="stat-value" id="stat-active">0</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Quick Actions</h2>
+              <div class="quick-actions">
+                <button class="action-btn" data-action="add-character">
+                  <span class="icon">➕</span>
+                  <span>Add Character</span>
+                </button>
+                <button class="action-btn" data-action="create-event">
+                  <span class="icon">🎉</span>
+                  <span>Create Event</span>
+                </button>
+                <button class="action-btn" data-action="send-announcement">
+                  <span class="icon">📢</span>
+                  <span>Send News</span>
+                </button>
+                <button class="action-btn" data-action="toggle-drops">
+                  <span class="icon">🎯</span>
+                  <span>Toggle Drops</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Recent Activity</h2>
+              <div id="recent-activity" class="activity-list">
+                <p class="empty-state">No recent activity</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-characters" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="add-character-btn">
+                <span class="icon">➕</span> Add Character
+              </button>
+              <button class="btn btn-outline" id="import-characters-btn">
+                <span class="icon">📥</span> Import
+              </button>
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="characters-table">
+                  <thead>
+                    <tr>
+                      <th>Emoji</th>
+                      <th>Name</th>
+                      <th>Rarity</th>
+                      <th>Obtainable</th>
+                      <th>Stats</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-economy" class="section hidden">
+            <div class="card">
+              <h2>Currency Settings</h2>
+              <form id="economy-form" class="form-grid">
+                <div class="form-group">
+                  <label>Coin Name</label>
+                  <input type="text" id="coin-name" value="Coins">
+                </div>
+                <div class="form-group">
+                  <label>Coin Emoji</label>
+                  <input type="text" id="coin-emoji" value="💰">
+                </div>
+                <div class="form-group">
+                  <label>Gem Name</label>
+                  <input type="text" id="gem-name" value="Gems">
+                </div>
+                <div class="form-group">
+                  <label>Gem Emoji</label>
+                  <input type="text" id="gem-emoji" value="💎">
+                </div>
+                <div class="form-group">
+                  <label>PlayCoins Rate (1 PlayCoin = X Coins)</label>
+                  <input type="number" id="playcoin-rate" value="1" min="0.1" step="0.1">
+                </div>
+                <div class="form-group">
+                  <label>PlayGems Rate (1 PlayGem = X Gems)</label>
+                  <input type="number" id="playgem-rate" value="1" min="0.1" step="0.1">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Daily Rewards</h2>
+              <form id="daily-rewards-form" class="form-grid">
+                <div class="form-group">
+                  <label>Daily Coins</label>
+                  <input type="number" id="daily-coins" value="100" min="0">
+                </div>
+                <div class="form-group">
+                  <label>Daily Gems</label>
+                  <input type="number" id="daily-gems" value="5" min="0">
+                </div>
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="streak-enabled" checked>
+                    Enable Streak Bonus
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>Streak Multiplier (per day)</label>
+                  <input type="number" id="streak-multiplier" value="0.1" min="0" step="0.05">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Economy Statistics</h2>
+              <div class="stats-grid small">
+                <div class="stat-card">
+                  <h4>Total Coins in Circulation</h4>
+                  <p class="stat-value" id="economy-total-coins">0</p>
+                </div>
+                <div class="stat-card">
+                  <h4>Total Gems in Circulation</h4>
+                  <p class="stat-value" id="economy-total-gems">0</p>
+                </div>
+                <div class="stat-card">
+                  <h4>Average Coins per Player</h4>
+                  <p class="stat-value" id="economy-avg-coins">0</p>
+                </div>
+                <div class="stat-card">
+                  <h4>Average Gems per Player</h4>
+                  <p class="stat-value" id="economy-avg-gems">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-players" class="section hidden">
+            <div class="section-actions">
+              <input type="text" id="player-search" placeholder="Search players..." class="search-input">
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="players-table">
+                  <thead>
+                    <tr>
+                      <th>Player</th>
+                      <th>Level</th>
+                      <th>Trophies</th>
+                      <th>Coins</th>
+                      <th>Gems</th>
+                      <th>Last Active</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <button class="btn btn-sm" id="prev-page">Previous</button>
+                <span id="page-info">Page 1</span>
+                <button class="btn btn-sm" id="next-page">Next</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-settings" class="section hidden">
+            <div class="card">
+              <h2>Server Settings</h2>
+              <form id="settings-form" class="form-grid">
+                <div class="form-group">
+                  <label>Bot Name</label>
+                  <input type="text" id="bot-name" value="PlayBot">
+                </div>
+                <div class="form-group">
+                  <label>Command Prefix</label>
+                  <input type="text" id="command-prefix" value="!" maxlength="3">
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Feature Toggles</h2>
+              <div class="toggle-grid" id="feature-toggles">
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Channels</h2>
+              <form id="channels-form" class="form-grid">
+                <div class="form-group">
+                  <label>Drops Channel ID</label>
+                  <input type="text" id="drops-channel" placeholder="Channel ID">
+                </div>
+                <div class="form-group">
+                  <label>Events Channel ID</label>
+                  <input type="text" id="events-channel" placeholder="Channel ID">
+                </div>
+                <div class="form-group">
+                  <label>Updates Channel ID</label>
+                  <input type="text" id="updates-channel" placeholder="Channel ID">
+                </div>
+                <div class="form-group">
+                  <label>Battles Channel ID</label>
+                  <input type="text" id="battles-channel" placeholder="Channel ID">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Channels</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="section-drops" class="section hidden">
+            <div class="card">
+              <h2>Drop Settings</h2>
+              <form id="drops-form" class="form-grid">
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="drops-enabled" checked>
+                    Enable Drops
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>Drop Interval (seconds)</label>
+                  <input type="number" id="drop-interval" value="30" min="10">
+                </div>
+                <div class="form-group">
+                  <label>Catch Timeout (seconds)</label>
+                  <input type="number" id="catch-timeout" value="30" min="5">
+                </div>
+                <div class="form-group">
+                  <label>Max Drops per Hour</label>
+                  <input type="number" id="max-drops" value="120" min="1">
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Drop Rates</h2>
+              <form id="drop-rates-form" class="form-grid">
+                <div class="form-group">
+                  <label>Common (%)</label>
+                  <input type="number" id="rate-common" value="60" min="0" max="100">
+                </div>
+                <div class="form-group">
+                  <label>Uncommon (%)</label>
+                  <input type="number" id="rate-uncommon" value="25" min="0" max="100">
+                </div>
+                <div class="form-group">
+                  <label>Rare (%)</label>
+                  <input type="number" id="rate-rare" value="10" min="0" max="100">
+                </div>
+                <div class="form-group">
+                  <label>Epic (%)</label>
+                  <input type="number" id="rate-epic" value="4" min="0" max="100">
+                </div>
+                <div class="form-group">
+                  <label>Legendary (%)</label>
+                  <input type="number" id="rate-legendary" value="1" min="0" max="100">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Drop Rates</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Custom Messages</h2>
+              <form id="drop-messages-form">
+                <div class="form-group">
+                  <label>Spawn Message</label>
+                  <input type="text" id="msg-spawn" placeholder="A wild {character} appeared!">
+                  <small>Use {character} for the character name</small>
+                </div>
+                <div class="form-group">
+                  <label>Caught Message</label>
+                  <input type="text" id="msg-caught" placeholder="{user} caught {character}!">
+                  <small>Use {user} and {character}</small>
+                </div>
+                <div class="form-group">
+                  <label>Missed Message</label>
+                  <input type="text" id="msg-missed" placeholder="The {character} got away...">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Messages</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="section-battles" class="section hidden">
+            <div class="card">
+              <h2>Battle Settings</h2>
+              <form id="battles-form" class="form-grid">
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="battles-enabled" checked>
+                    Enable Battles
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>Turn Timeout (seconds)</label>
+                  <input type="number" id="turn-timeout" value="60" min="10">
+                </div>
+                <div class="form-group">
+                  <label>Max Rounds</label>
+                  <input type="number" id="max-rounds" value="20" min="5">
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Trophy Rewards</h2>
+              <form id="trophy-rewards-form" class="form-grid">
+                <div class="form-group">
+                  <label>Win Trophies</label>
+                  <input type="number" id="trophy-win" value="30">
+                </div>
+                <div class="form-group">
+                  <label>Lose Trophies</label>
+                  <input type="number" id="trophy-lose" value="-15">
+                </div>
+                <div class="form-group">
+                  <label>Draw Trophies</label>
+                  <input type="number" id="trophy-draw" value="5">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Rewards</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="section-quests" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="add-quest-btn">
+                <span class="icon">➕</span> Add Quest
+              </button>
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="quests-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Requirement</th>
+                      <th>Rewards</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-jobs" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="add-job-btn">
+                <span class="icon">➕</span> Add Job
+              </button>
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="jobs-table">
+                  <thead>
+                    <tr>
+                      <th>Emoji</th>
+                      <th>Name</th>
+                      <th>Duration</th>
+                      <th>Rewards</th>
+                      <th>Cooldown</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-crates" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="add-crate-btn">
+                <span class="icon">➕</span> Add Crate
+              </button>
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="crates-table">
+                  <thead>
+                    <tr>
+                      <th>Emoji</th>
+                      <th>Name</th>
+                      <th>Price</th>
+                      <th>Drop Rates</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-moves" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="add-move-btn">
+                <span class="icon">➕</span> Add Move
+              </button>
+              <select id="move-tier-filter" class="filter-select">
+                <option value="">All Tiers</option>
+                <option value="low">Low Tier</option>
+                <option value="mid">Mid Tier</option>
+                <option value="high">High Tier</option>
+                <option value="special">Special</option>
+              </select>
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="moves-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Damage</th>
+                      <th>Tier</th>
+                      <th>Type</th>
+                      <th>Character</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-events" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="create-event-btn">
+                <span class="icon">➕</span> Create Event
+              </button>
+            </div>
+            <div class="card">
+              <h2>Scheduled Events</h2>
+              <div id="events-list" class="events-grid"></div>
+            </div>
+          </div>
+
+          <div id="section-audit" class="section hidden">
+            <div class="card">
+              <h2>Audit Log</h2>
+              <div class="table-container">
+                <table class="data-table" id="audit-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Action</th>
+                      <th>User</th>
+                      <th>Target</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-branding" class="section hidden">
+            <div class="card">
+              <h2>Bot Branding</h2>
+              <form id="branding-form" class="form-grid">
+                <div class="form-group">
+                  <label>Embed Color</label>
+                  <input type="color" id="embed-color" value="#00D9FF">
+                </div>
+                <div class="form-group">
+                  <label>Footer Text</label>
+                  <input type="text" id="footer-text" value="Powered by PlayBot">
+                </div>
+                <div class="form-group">
+                  <label>Thumbnail URL</label>
+                  <input type="url" id="thumbnail-url" placeholder="https://...">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Branding</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="section-items" class="section hidden">
+            <div class="section-actions">
+              <button class="btn btn-primary" id="add-item-btn">
+                <span class="icon">➕</span> Add Item
+              </button>
+            </div>
+            <div class="card">
+              <div class="table-container">
+                <table class="data-table" id="items-table">
+                  <thead>
+                    <tr>
+                      <th>Emoji</th>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Rarity</th>
+                      <th>Price</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="section-admin" class="section hidden">
+            <div class="card">
+              <h2>Platform Statistics</h2>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <h4>Total Servers</h4>
+                  <p class="stat-value" id="admin-total-servers">0</p>
+                </div>
+                <div class="stat-card">
+                  <h4>Total Users</h4>
+                  <p class="stat-value" id="admin-total-users">0</p>
+                </div>
+                <div class="stat-card">
+                  <h4>Total Players</h4>
+                  <p class="stat-value" id="admin-total-players">0</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Super Admins</h2>
+              <div id="super-admins-list"></div>
+              <form id="add-super-admin-form" class="inline-form">
+                <input type="text" id="new-admin-id" placeholder="Discord User ID">
+                <input type="text" id="new-admin-name" placeholder="Username">
+                <button type="submit" class="btn btn-primary">Add Super Admin</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2>Global Currency Management</h2>
+              <form id="global-currency-form" class="form-grid">
+                <div class="form-group">
+                  <label>Target User ID</label>
+                  <input type="text" id="currency-target-id" placeholder="Discord User ID">
+                </div>
+                <div class="form-group">
+                  <label>Amount</label>
+                  <input type="number" id="currency-amount" value="0" min="1">
+                </div>
+                <div class="form-group">
+                  <label>Currency Type</label>
+                  <select id="currency-type">
+                    <option value="playCoins">PlayCoins</option>
+                    <option value="playGems">PlayGems</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Reason</label>
+                  <input type="text" id="currency-reason" placeholder="Reason for modification">
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-success" id="grant-global-btn">Grant</button>
+                  <button type="button" class="btn btn-danger" id="deduct-global-btn">Deduct</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="no-server-selected" class="empty-state-container">
+            <div class="empty-state">
+              <span class="empty-icon">🎮</span>
+              <h2>Select a Server</h2>
+              <p>Choose a server from the dropdown to manage its settings</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay hidden">
+      <div class="modal" id="modal-container">
+        <div class="modal-header">
+          <h2 id="modal-title">Modal</h2>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-footer" id="modal-footer"></div>
+      </div>
+    </div>
+
+    <div id="toast-container"></div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

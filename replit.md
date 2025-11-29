@@ -1,78 +1,197 @@
-# Discord Character Collection Bot
+# PlayBot - Multi-Tenant Discord Bot Platform
 
 ## Overview
-This project is a Discord bot designed to offer a comprehensive character collection experience. It features over 50 unique characters with stats, leveling, and a skin system. The bot integrates a full economy with multiple currencies, a dynamic battle system, interactive elements like crates and random drops, player trading, and competitive daily events. Its primary goal is to enhance community engagement and provide a persistent, engaging virtual world for users.
 
-## User Preferences
-The agent should prioritize iterative development, frequently asking for feedback and approval before implementing major changes. Communication should be clear and concise, avoiding jargon where possible. For coding, a preference for modular, readable, and well-documented code is essential. The agent should always provide detailed explanations for proposed changes or new features. Do not make changes to the `dataManager.js` or `mongoManager.js` files without explicit instruction, as these are critical for data integrity across environments.
+PlayBot is a comprehensive, customizable Discord bot platform that transforms the original ZooBot into a multi-tenant system where server admins can fully customize every aspect of their bot through a web dashboard.
 
-## System Architecture
-The bot is built on Discord.js v14 and Node.js 20, utilizing a dual-mode data storage system (JSON for testing, MongoDB for production) with a one-command migration script.
+## Project Structure
 
-**UI/UX Decisions:**
-- **Visuals:** Character skins displayed in embeds, paginated user profiles with progress bars, custom profile picture selection from owned characters, and custom PFP image system.
-- **Progress Bars:** 12-slot colored emoji progress bars (🟩🟦🟨🟧🟥⬜) with percentage display for token collection.
-- **Information Display:** Extensive use of Discord embeds and emoji integration for characters and items.
+```
+/
+├── src/
+│   ├── core/
+│   │   ├── database.js      # MongoDB connection and collections
+│   │   └── schemas.js       # Data schemas and templates
+│   ├── services/
+│   │   ├── TenantService.js    # Multi-tenant server management
+│   │   ├── CurrencyService.js  # Global/Server currency management
+│   │   ├── PermissionService.js # Role-based access control
+│   │   └── AuditService.js     # Audit logging
+│   ├── api/
+│   │   ├── server.js        # Express web server
+│   │   ├── middleware/
+│   │   │   └── auth.js      # Authentication middleware
+│   │   └── routes/
+│   │       ├── auth.js      # Discord OAuth2
+│   │       ├── servers.js   # Server management
+│   │       ├── characters.js
+│   │       ├── moves.js
+│   │       ├── crates.js
+│   │       ├── quests.js
+│   │       ├── jobs.js
+│   │       ├── drops.js
+│   │       ├── battles.js
+│   │       ├── events.js
+│   │       ├── economy.js
+│   │       ├── players.js
+│   │       ├── audit.js
+│   │       └── admin.js
+│   ├── dashboard/
+│   │   └── public/
+│   │       ├── index.html
+│   │       ├── css/style.css
+│   │       └── js/app.js
+│   ├── bot/                 # Discord bot files (to be integrated)
+│   └── main.js              # Application entry point
+├── index.js                 # Original bot code (legacy)
+├── characters.js            # Default character data
+├── moves.js                 # Default move data
+└── [other legacy files]
+```
 
-**Technical Implementations:**
-- **Character System:** 50+ unique characters with tokens, special traits, moves, HP scaling, levels, and owned skins.
-- **Economy & Currency:** Coins, Gems, Trophies, and Character-specific Tokens, with daily login and message-based rewards.
-- **Crate System:** Multi-tiered crates (Gold, Emerald, Legendary, Tyrant, Bronze, Silver) offering characters, tokens, and coins, including a "pending tokens" system and interactive opening with customizable GIFs.
-- **Drop System:** Random token, coin, and gem drops every 20 seconds, claimable by the first user, optimized to reduce API calls by leaving uncaught drops in chat. Includes a paid drop system for non-main servers and smart pausing.
-- **Trading System:** Secure player-to-player trading with dual confirmation.
-- **Battle System:** Turn-based combat with energy management, 51 unique passive abilities, critical hits, status effects, and consumable items. Includes an AI battle system.
-- **Inventory:** MongoDB-compatible inventory for battle items.
-- **Event System:** Daily rotating competitive events (Trophy Hunt, Crate Master, Drop Catcher) with real-time tracking, automatic reward distribution, and manual/scheduled control. Event announcements broadcast to all servers (main server uses fixed channel, other servers use configured events channel).
-- **Giveaway System:** Daily giveaways with automatic prize distribution. Broadcasts to specific giveaway channel in main server and events channels in other servers.
-- **Lottery System:** Universal lottery system with ticket purchases using gems. Prize pool accumulates and broadcasts results to all servers via updates channels.
-- **Promotion System:** Automated promotional messages for non-main servers, posted to updates channels every 4 hours.
-- **Permission System:** Three-tier role-based access control:
-  - **Super Admin:** Hardcoded bot owners with full access to all commands globally
-  - **ZooAdmin Role:** Discord role (case insensitive) for server customization - allows server admins to configure channels, activate drops, customize emojis/GIFs
-  - **Bot Admin (Legacy):** Database-stored admins for event management (being phased out)
-- **Admin Tools:** Commands for managing resources, characters, skins, custom emojis, chest GIFs, and bot channels, along with server management and bot update broadcasting.
-- **Key & Cage System:** Two-tier character unlock system using character-specific keys and random cage keys obtained from events.
-- **Custom Emojis:** System for bot-wide custom character emojis, stored in MongoDB and applied automatically. Centralized emoji configuration in emojiConfig.js for easy customization.
-- **Profile Picture (PFP) System:** Custom profile image system allowing users to upload and manage multiple profile pictures stored via Discord CDN URLs. Users can switch between character images and custom PFPs for their profile display using !setpfp command. Supports both character selection (!setpfp <character>) and custom PFP selection (!setpfp pfp <number>).
-- **Personalized Task System:** Task system restricted to registered players who have completed !start command.
-- **Trivia System:** Interactive trivia with 3-guess limit, 1-minute timer, 30-second cooldown, and 100 coin rewards. Bot admin-manageable question database.
-- **AI Battle Scaling:** Dynamic AI difficulty scaling for hard mode that adjusts level (1.2× + 3-5 bonus) and ST (minimum 90, up to 115 cap) based on challenger stats, with interpolated scaling for low-ST players and HP multipliers for high-ST players to maintain competitive balance.
-- **Mail System:** Inbox clearing functionality for users.
-- **Help Documentation:** Comprehensive in-bot help and command reference.
-- **Work/Job System (UPDATED):** Engaging work system with 5 job types (Miner, Caretaker, Farmer, Zookeeper, Ranger) on 15-minute cooldown. Jobs reward coins, gems, ores, wood, tokens, crates, keys, and shards. First work is always caretaker to bootstrap new players. **FREE STARTER PACK:** All new workers receive level 1 drill, axe, whistle, binoculars, and caretaker house automatically - no grinding required to start!
-- **Resource Economy:** 5 ore types (🟡 Aurelite, 🔵 Kryonite, 🟣 Zyronite, 🔴 Rubinite, ⚫ Voidinite) and 4 wood types (🟤 Oak, 🟠 Maple, ⚫ Ebony, ✨ Celestial) used for crafting and trading.
-- **Tool Crafting:** 4 tool types (⛏️ Drill, 🪓 Axe, 📢 Whistle, 🔭 Binoculars) with 5 levels each. Tools have durability and are crafted from ores and wood. Higher level tools = better job rewards. Legacy users automatically receive missing starter tools.
-- **Caretaking House:** 5-level upgrade system for caretaker job, requiring coins, gems, and resources. Higher levels provide better rewards when working. Starts at level 1 for free.
-- **Market System (UPDATED):** Universal marketplace supporting all item types (ores, wood, crates, keys, resources). Players can list, buy, and sell items for coins with MongoDB persistence. Uses clean sequential IDs (M001, M002, M003, etc.) for easy reference.
-- **Auction System (UPDATED):** Time-based auction system supporting all item types with bidding mechanics, automatic settlement, and instant MongoDB saves. Uses clean sequential IDs (A001, A002, A003, etc.) for easy reference. **DUAL UI (Nov 27):** Multi-step form with category dropdown → item dropdown → modal with 4 fields (Quantity, Starting Bid, Duration, Currency). Form defaults to coins & 24 hours. Classic text command also available: `!auction create <category> <item> <qty> <bid> [hours] [currency]`. Both support gems currency.
-- **Work Guide System (NEW):** Comprehensive in-bot documentation via !workguide command explaining all jobs, tools, rewards, crafting, market, and strategy tips. Makes the work system accessible to all players.
-- **Work Image System (NEW):** CDN-hosted custom images for each work type (drill, room, axe, whistle, binoculars). Admins can customize with !setworkimage, users can view with !showwork.
-- **Admin Economy Tools (UPDATED):** Super admin commands for resource management (!giveores, !givewood, !givetool), market control (!clearmarket, !viewmarket), auction management (!clearauctions, !viewauctions, !endauction), work assignment (!assignwork), and work image customization (!setworkimage).
-- **UST (Universal Skin Token) System (NEW):** Complete cosmetics economy system where players earn UST through clan wars and spend it on character skins and profile pictures. Features:
-  - **UST Currency:** Earned by top 3 clans in weekly clan wars, distributed proportionally based on contribution
-  - **UST Shop (!ustshop):** Interactive shop with category selection (skins/pfps), shows only skins for characters the user owns, displays rarity and cost
-  - **Cosmetics Catalog:** Dual-persistence system (MongoDB for production, JSON file for development) with 5-minute cache TTL for performance
-  - **Rarity System:** 5 rarity tiers (Common: 10 UST, Rare: 25 UST, Ultra Rare: 50 UST, Epic: 100 UST, Legendary: 200 UST) with custom cost override
-  - **Upload Commands:** !uploadskin and !uploadpfp for super admins to add new cosmetics - supports both image attachments AND direct image links for flexibility
-  - **Purchase System:** Integrated with existing cosmetics system, purchased items immediately available in !setpfp and !setskin
+## Key Features
 
-**System Design Choices:**
-- **Modularity & Scalability:** Core functionalities are separated into dedicated files, designed with MongoDB integration for production.
-- **Data Management:** Automatic data backfilling, environment-based configuration, and a dual-save system (`saveDataImmediate()` for critical operations, batched saves for telemetry) with graceful shutdown handlers.
-- **Error Handling:** Comprehensive error handling with user-friendly messages.
-- **Performance Optimization:** In-memory caching for skins, MongoDB indexes for fast queries, and optimized drop system to minimize Discord API calls.
-- **Security:** Critical economy/admin commands restricted to super-admins. Server customization requires ZooAdmin role for safe delegation of bot management to trusted server members.
-- **Multi-Server Architecture:** Supports deployment across multiple Discord servers, differentiating features like drop rates, clan wars, and promotional messages between a "Main Server" and "Non-Main Servers."
+### Multi-Tenant Architecture
+- Each Discord server gets isolated configuration
+- Per-server customization of all game elements
+- Server admins manage via web dashboard
 
-- **Character Info Command (!info):** View any character's information without owning them - see default skin, special ability, and how to obtain them.
-- **Q&A System (UPDATED):** Comprehensive Q&A system with user submissions for approval:
-  - **User Commands:** `!q` (list topics), `!q <keyword>` (get answer), `!submitqa keyword | question | answer` (submit for approval)
-  - **Admin Commands:** `!qadd keyword | message` (add directly), `!qedit keyword | message` (edit), `!qdel keyword` (delete), `!pendingqa` (view pending), `!approveqa <id>` (approve), `!rejectqa <id> <reason>` (reject)
-  - **Submission Workflow:** Users submit Q&A → Pending review → Admin approves/rejects → User gets 10 gems + DM notification on approval
-  - **Storage:** All entries stored in MongoDB for persistence
+### Customizable Elements
+- Characters (name, emoji, stats, rarity, abilities)
+- Moves (damage, effects, tiers)
+- Crates (drop rates, prices, rewards)
+- Quests (requirements, rewards)
+- Jobs/Work (duration, rewards, cooldowns)
+- Economy (currency names, rates, daily rewards)
+- Drops (intervals, messages, rates)
+- Battles (rewards, rank tiers)
+- Events (types, rewards)
 
-## External Dependencies
-- **Discord.js v14**: For all Discord API interactions.
-- **Node.js 20**: The JavaScript runtime environment.
-- **Express**: Used for a lightweight HTTP server, primarily for health checks.
-- **MongoDB**: Utilized for production data persistence and scalability.
+### Global Currency System
+- PlayCoins and PlayGems as global currencies
+- Conversion to server-specific currencies
+- Only super admins can create global currency
+- Full audit trail for all transactions
+
+### Permission Levels
+1. **Super Admin** - Platform-wide control
+2. **Server Owner** - Full server control
+3. **Server Admin** - Most server settings
+4. **Server Moderator** - Limited moderation
+5. **Player** - Normal user
+6. **Guest** - Unauthenticated
+
+### Web Dashboard Features
+- Discord OAuth2 authentication
+- Server selection and management
+- Visual editors for all game elements
+- Player management and statistics
+- Economy statistics and currency grants
+- Audit log viewing
+- Branding customization
+
+## Environment Variables
+
+Required:
+- `MONGODB_URI` - MongoDB connection string
+- `DISCORD_CLIENT_ID` - Discord OAuth2 application ID
+- `DISCORD_CLIENT_SECRET` - Discord OAuth2 secret
+- `DISCORD_REDIRECT_URI` - OAuth2 callback URL
+- `SESSION_SECRET` - Express session secret
+- `DISCORD_BOT_TOKEN` - Bot token for Discord integration
+
+Optional:
+- `PORT` - Server port (default: 5000)
+- `ADMIN_INIT_KEY` - Secret key for first super admin setup
+- `NODE_ENV` - Environment (development/production)
+
+## Database Collections
+
+### Global Collections
+- `global_users` - User accounts linked to Discord
+- `global_currency_ledger` - All currency transactions
+- `global_super_admins` - Super admin list
+- `global_audit_log` - Platform-wide audit logs
+
+### Tenant Collections (per-server)
+- `server_configs` - Server configuration
+- `server_characters` - Custom characters
+- `server_moves` - Custom moves
+- `server_crates` - Custom crates
+- `server_quests` - Custom quests
+- `server_jobs` - Custom jobs
+- `server_events` - Server events
+- `server_shops` - Shop configurations
+
+### User Collections
+- `player_data` - Player data per server
+- `player_characters` - Player-owned characters
+- `player_inventory` - Player inventories
+
+## Running the Application
+
+### Development
+```bash
+npm install
+node src/main.js
+```
+
+### Production (Render)
+Set environment variables and deploy. The application will:
+1. Connect to MongoDB
+2. Start the Express dashboard server on port 5000
+3. Initialize the Discord bot (when integrated)
+
+## API Endpoints
+
+### Authentication
+- `GET /api/auth/login` - Initiate Discord OAuth
+- `GET /api/auth/callback` - OAuth callback
+- `GET /api/auth/user` - Get current user
+- `POST /api/auth/logout` - Log out
+
+### Servers
+- `GET /api/servers` - List user's servers
+- `POST /api/servers/setup` - Configure new server
+- `GET /api/servers/:id` - Get server config
+- `PUT /api/servers/:id` - Update server config
+
+### Content Management
+All content routes follow pattern:
+- `GET /api/{resource}/:serverId` - List all
+- `POST /api/{resource}/:serverId` - Create new
+- `PUT /api/{resource}/:serverId/:itemId` - Update
+- `DELETE /api/{resource}/:serverId/:itemId` - Delete
+
+Resources: characters, moves, crates, quests, jobs, events
+
+### Economy
+- `GET /api/economy/:serverId/config` - Get economy config
+- `PUT /api/economy/:serverId/config` - Update economy
+- `POST /api/economy/:serverId/grant` - Grant currency
+- `GET /api/economy/:serverId/stats` - Economy statistics
+
+### Admin (Super Admin only)
+- `GET /api/admin/stats` - Platform statistics
+- `GET /api/admin/super-admins` - List super admins
+- `POST /api/admin/global-currency/grant` - Grant global currency
+
+## Recent Changes
+
+- 2024-11: Initial PlayBot platform architecture
+- Created multi-tenant database schema
+- Built web dashboard with Discord OAuth2
+- Implemented permission system (RBAC)
+- Added currency service with audit logging
+- Created API routes for all game elements
+- Built responsive dashboard UI
+
+## Migration Notes
+
+The original ZooBot code (index.js and related files) remains for reference.
+Integration with the new multi-tenant system will:
+1. Replace hardcoded configurations with database lookups
+2. Add server context to all operations
+3. Use TenantService for configuration
+4. Use CurrencyService for all currency operations
+5. Apply PermissionService for access control
