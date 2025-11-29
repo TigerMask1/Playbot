@@ -57,7 +57,11 @@ externalPort = 5173
 localPort = 43535
 externalPort = 3001
 
+[[ports]]
+localPort = 44343
+externalPort = 4200
+
 [userenv]
 
 [userenv.shared]
-DISCORD_REDIRECT_URI = "http://localhost:5000/api/auth/callback"
+DISCORD_REDIRECT_URI = "https://a2058a1e-5e15-4260-a92d-7fa46b0934ff-00-byh3g51za0ha.pike.replit.dev/api/auth/callback"
