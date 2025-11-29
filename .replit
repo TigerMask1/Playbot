@@ -15,23 +15,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Discord Bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "PlayBot Dashboard"
-
-[[workflows.workflow]]
-name = "Discord Bot"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node index.js"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "PlayBot Dashboard"
@@ -56,6 +40,10 @@ externalPort = 80
 [[ports]]
 localPort = 34945
 externalPort = 3002
+
+[[ports]]
+localPort = 35203
+externalPort = 4200
 
 [[ports]]
 localPort = 38885
