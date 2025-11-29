@@ -1,8 +1,8 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const TenantService = require('../services/TenantService');
-const CurrencyService = require('../services/CurrencyService');
-const PermissionService = require('../services/PermissionService');
-const AuditService = require('../services/AuditService');
+const { CurrencyService, CURRENCY_ACTIONS } = require('../services/CurrencyService');
+const { PermissionService, PERMISSIONS } = require('../services/PermissionService');
+const { createAuditLog, getAuditLogs } = require('../services/AuditService');
 
 class BotClient extends Client {
   constructor() {
@@ -17,11 +17,16 @@ class BotClient extends Client {
     });
 
     this.commands = new Collection();
+    
+    // Services as static references, NOT instances
     this.services = {
-      tenantService: new TenantService(),
-      currencyService: new CurrencyService(),
-      permissionService: new PermissionService(),
-      auditService: new AuditService()
+      TenantService,
+      CurrencyService,
+      PermissionService,
+      createAuditLog,
+      getAuditLogs,
+      CURRENCY_ACTIONS,
+      PERMISSIONS
     };
 
     this.setupEventHandlers();
@@ -30,29 +35,46 @@ class BotClient extends Client {
   setupEventHandlers() {
     this.on('ready', () => {
       console.log(`🤖 Discord Bot logged in as ${this.user.tag}`);
+      console.log(`📡 Connected to ${this.guilds.cache.size} guilds`);
     });
 
     this.on('error', error => {
-      console.error('Discord Bot error:', error);
+      console.error('🔴 Discord Bot error:', error);
+    });
+
+    this.on('warn', warning => {
+      console.warn('⚠️ Discord Bot warning:', warning);
     });
   }
 
   async ensureTenantExists(guildId, guildName) {
     try {
-      const tenant = await this.services.tenantService.getTenant(guildId);
-      if (!tenant) {
-        console.log(`📦 Setting up new tenant for guild: ${guildName}`);
-        await this.services.tenantService.createTenant(guildId, guildName);
+      const config = await TenantService.getServerConfig(guildId);
+      
+      if (!config) {
+        console.log(`📦 Setting up new server tenant: ${guildName} (${guildId})`);
+        const result = await TenantService.createServerConfig(guildId, guildName, null, 'System');
+        if (!result.success) {
+          console.error(`Failed to create tenant: ${result.message}`);
+          return null;
+        }
+        return result.config;
       }
-      return await this.services.tenantService.getTenant(guildId);
+      
+      return config;
     } catch (error) {
-      console.error(`Failed to ensure tenant for ${guildId}:`, error);
+      console.error(`❌ Failed to ensure tenant for ${guildId}:`, error);
       return null;
     }
   }
 
-  registerCommand(name, execute) {
-    this.commands.set(name.toLowerCase(), { name, execute });
+  registerCommand(name, command) {
+    if (!command.execute || typeof command.execute !== 'function') {
+      console.error(`❌ Command "${name}" missing execute function`);
+      return false;
+    }
+    this.commands.set(name.toLowerCase(), { name, ...command });
+    return true;
   }
 
   async executeCommand(commandName, context) {
@@ -63,7 +85,7 @@ class BotClient extends Client {
       await command.execute(context, this.services);
       return true;
     } catch (error) {
-      console.error(`Error executing command ${commandName}:`, error);
+      console.error(`🔴 Error executing command "${commandName}":`, error);
       return false;
     }
   }

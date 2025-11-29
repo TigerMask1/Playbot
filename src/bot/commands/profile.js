@@ -4,39 +4,38 @@ module.exports = {
   name: 'profile',
   description: 'View your player profile',
   async execute(context, services) {
-    const { message, userId, tenant, guildId } = context;
-    const { tenantService, currencyService } = services;
+    const { message, userId, guildId } = context;
+    const { TenantService, CurrencyService } = services;
 
     try {
-      // Get player data
-      const playerKey = `player_${guildId}_${userId}`;
-      const playerData = await tenantService.getPlayerData(guildId, userId);
-
-      if (!playerData) {
-        return message.reply('❌ No player profile found. Use `!create` to start!');
+      // Get server config
+      const config = await TenantService.getServerConfig(guildId);
+      if (!config) {
+        return message.reply('❌ Server not configured. Admin must run `/setup` via dashboard.');
       }
 
-      // Get currency balance
-      const balance = await currencyService.getServerBalance(guildId, userId);
+      // Get currency balance using static method
+      const balance = await CurrencyService.getServerBalance(userId, guildId);
 
       // Create embed
       const embed = new EmbedBuilder()
         .setColor('#0099ff')
-        .setTitle(`📊 ${playerData.username}'s Profile`)
+        .setTitle(`📊 Player Profile`)
+        .setThumbnail(message.author.displayAvatarURL())
         .addFields(
-          { name: 'Level', value: String(playerData.level || 1), inline: true },
-          { name: 'XP', value: String(playerData.xp || 0), inline: true },
-          { name: 'Characters', value: String(playerData.characters?.length || 0), inline: true },
-          { name: tenant.settings.currencyName || 'Coins', value: String(balance.coins || 0), inline: true },
-          { name: tenant.settings.gemName || 'Gems', value: String(balance.gems || 0), inline: true },
-          { name: 'Join Date', value: new Date(playerData.createdAt).toLocaleDateString(), inline: true }
+          { name: 'Discord User', value: `${message.author.username}#${message.author.discriminator || '0'}`, inline: false },
+          { name: 'User ID', value: userId, inline: true },
+          { name: 'Server', value: config.serverName || 'Unknown', inline: true },
+          { name: config.economy?.currencyName || 'Coins', value: String(balance.coins || 0), inline: true },
+          { name: config.economy?.gemName || 'Gems', value: String(balance.gems || 0), inline: true }
         )
+        .setFooter({ text: 'Use /dashboard to view full profile' })
         .setTimestamp();
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Profile command error:', error);
-      return message.reply('❌ Failed to load profile.');
+      return message.reply('❌ Failed to load profile. Try again later.');
     }
   }
 };

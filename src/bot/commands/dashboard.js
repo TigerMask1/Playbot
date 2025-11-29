@@ -9,13 +9,30 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setColor('#0099ff')
       .setTitle('🎮 PlayBot Dashboard')
-      .setDescription('Access the complete PlayBot management interface')
+      .setDescription('The complete server management interface')
       .addFields(
-        { name: 'Production', value: 'https://playbot-tajy.onrender.com', inline: false },
-        { name: 'Development', value: 'http://localhost:5000', inline: false },
-        { name: 'Features', value: 'Characters • Economy • Battles • Quests • Events • and more!', inline: false }
+        { 
+          name: '🌐 Production Dashboard', 
+          value: '[https://playbot-tajy.onrender.com](https://playbot-tajy.onrender.com)', 
+          inline: false 
+        },
+        { 
+          name: '💻 Local Dashboard (Dev)', 
+          value: 'http://localhost:5000', 
+          inline: false 
+        },
+        { 
+          name: '📋 Accessible Features', 
+          value: '✨ Character Management\n⚡ Battle Configuration\n💰 Economy Settings\n🎁 Drop & Crate Setup\n📜 Quest Creation\n🎯 Job Management\n🎉 Event Scheduling\n👥 Player Management\n📊 Audit Logs\n⚙️ Server Settings', 
+          inline: false 
+        },
+        { 
+          name: '🔐 Access Level', 
+          value: 'Server Admins and Owners can customize everything', 
+          inline: false 
+        }
       )
-      .setFooter({ text: 'Your server admin can customize everything via the dashboard' })
+      .setFooter({ text: 'Login with Discord OAuth to access dashboard' })
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });

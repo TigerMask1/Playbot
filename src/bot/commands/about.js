@@ -11,13 +11,31 @@ module.exports = {
       .setTitle('🎮 About PlayBot')
       .setDescription('The Ultimate Customizable Discord Bot Platform')
       .addFields(
-        { name: 'Version', value: '2.0.0 - Multi-Tenant Platform', inline: true },
-        { name: 'Status', value: '✅ Active', inline: true },
-        { name: 'Architecture', value: 'Web Dashboard + Discord Bot + MongoDB', inline: false },
-        { name: 'Features', value: '✨ 50+ Characters\n⚡ Battle System\n💰 Economy\n🎁 Drops & Crates\n⚔️ Pvp & Trading', inline: false },
-        { name: 'Dashboard', value: 'https://playbot-tajy.onrender.com', inline: false }
+        { name: '📦 Version', value: '2.0.0 - Multi-Tenant Platform', inline: true },
+        { name: '✅ Status', value: 'Active & Maintained', inline: true },
+        { name: '🏗️ Architecture', value: 'Web Dashboard + Discord Bot + MongoDB', inline: false },
+        { 
+          name: '⭐ Key Features', 
+          value: '✨ **50+ Characters** - Pre-loaded character system\n⚡ **Battle System** - Configure mechanics and rewards\n💰 **Economy** - Global and server-specific currency\n🎁 **Drops & Crates** - Configurable drop rates\n📜 **Quests** - Create custom questlines\n🎯 **Jobs** - Work system with daily rewards\n🎉 **Events** - Schedule and manage special events\n👥 **Trading** - Player-to-player exchanges\n⚔️ **PvP** - Battle and dueling system', 
+          inline: false 
+        },
+        { 
+          name: '🔗 Links', 
+          value: '[Production Dashboard](https://playbot-tajy.onrender.com)\n[GitHub](https://github.com)\n[Support](https://discord.gg)', 
+          inline: false 
+        },
+        { 
+          name: '🛠️ Technology', 
+          value: 'Built with discord.js, Node.js, and MongoDB', 
+          inline: true 
+        },
+        { 
+          name: '👥 Multi-Tenant', 
+          value: 'Each Discord server gets isolated customization', 
+          inline: true 
+        }
       )
-      .setFooter({ text: 'Created with discord.js & Node.js' })
+      .setFooter({ text: 'PlayBot - Making Discord bots customizable for everyone' })
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
