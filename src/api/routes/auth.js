@@ -17,10 +17,18 @@ router.get('/callback', async (req, res) => {
   const { code } = req.query;
 
   if (!code) {
+    console.error('No authorization code received');
     return res.redirect('/?error=no_code');
   }
 
   try {
+    console.log('🔐 OAuth callback initiated with code:', code.substring(0, 10) + '...');
+    
+    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+      console.error('Missing Discord credentials');
+      return res.redirect('/?error=missing_credentials');
+    }
+
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -38,9 +46,11 @@ router.get('/callback', async (req, res) => {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      console.error('Token error:', tokenData);
-      return res.redirect('/?error=token_error');
+      console.error('❌ Discord token error:', tokenData);
+      return res.redirect('/?error=token_error&message=' + encodeURIComponent(tokenData.error_description || tokenData.error));
     }
+    
+    console.log('✅ Got access token from Discord');
 
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
@@ -64,8 +74,11 @@ router.get('/callback', async (req, res) => {
              (permissions & BigInt(0x20)) === BigInt(0x20);
     });
 
+    console.log('📊 Fetched user data:', userData.username);
+    console.log('🏢 User has', adminGuilds.length, 'admin guilds');
+
     const globalUsers = await getCollection(COLLECTIONS.GLOBAL.USERS);
-    await globalUsers.updateOne(
+    const updateResult = await globalUsers.updateOne(
       { odiscordId: userData.id },
       {
         $set: {
@@ -89,6 +102,8 @@ router.get('/callback', async (req, res) => {
       { upsert: true }
     );
 
+    console.log('💾 User saved to database');
+
     const isSuperAdmin = await PermissionService.isSuperAdmin(userData.id);
 
     req.session.user = {
@@ -102,11 +117,18 @@ router.get('/callback', async (req, res) => {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token
     };
+    
+    console.log('✅ Session created successfully for', userData.username);
 
-    res.redirect('/dashboard');
+    res.redirect('/');
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect('/?error=oauth_error');
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    res.redirect('/?error=oauth_error&details=' + encodeURIComponent(error.message));
   }
 });
 
