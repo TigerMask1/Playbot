@@ -29,19 +29,32 @@ router.get('/callback', async (req, res) => {
       return res.redirect('/?error=missing_credentials');
     }
 
-    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        client_secret: DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: DISCORD_REDIRECT_URI
-      })
-    });
+    // Fetch Discord token with timeout
+    let tokenResponse;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      
+      tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID,
+          client_secret: DISCORD_CLIENT_SECRET,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: DISCORD_REDIRECT_URI
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeout);
+    } catch (fetchError) {
+      console.error('❌ Failed to fetch Discord token:', fetchError.message);
+      return res.redirect('/?error=discord_api_error&message=' + encodeURIComponent('Failed to contact Discord'));
+    }
 
     const tokenData = await tokenResponse.json();
 
@@ -52,19 +65,45 @@ router.get('/callback', async (req, res) => {
     
     console.log('✅ Got access token from Discord');
 
-    const userResponse = await fetch('https://discord.com/api/users/@me', {
-      headers: {
-        Authorization: `Bearer ${tokenData.access_token}`
-      }
-    });
+    // Fetch user data with timeout
+    let userResponse;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      userResponse = await fetch('https://discord.com/api/users/@me', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeout);
+    } catch (fetchError) {
+      console.error('❌ Failed to fetch user data:', fetchError.message);
+      return res.redirect('/?error=user_fetch_error');
+    }
 
     const userData = await userResponse.json();
 
-    const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
-      headers: {
-        Authorization: `Bearer ${tokenData.access_token}`
-      }
-    });
+    // Fetch guilds with timeout
+    let guildsResponse;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeout);
+    } catch (fetchError) {
+      console.error('❌ Failed to fetch guilds:', fetchError.message);
+      return res.redirect('/?error=guilds_fetch_error');
+    }
 
     const guildsData = await guildsResponse.json();
 
