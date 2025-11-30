@@ -5,11 +5,34 @@ const { PermissionService } = require('../../services/PermissionService');
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://localhost:5000/api/auth/callback';
+
+function getRedirectUri(req) {
+  if (process.env.DISCORD_REDIRECT_URI) {
+    return process.env.DISCORD_REDIRECT_URI;
+  }
+  
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return `${process.env.RENDER_EXTERNAL_URL}/api/auth/callback`;
+  }
+  
+  if (process.env.REPLIT_DOMAINS) {
+    const domain = process.env.REPLIT_DOMAINS.split(',')[0];
+    return `https://${domain}/api/auth/callback`;
+  }
+  
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5000';
+  return `${protocol}://${host}/api/auth/callback`;
+}
 
 router.get('/login', (req, res) => {
+  const redirectUri = getRedirectUri(req);
   const scope = 'identify email guilds';
-  const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+  const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+  
+  req.session.oauthRedirectUri = redirectUri;
+  
+  console.log('🔐 OAuth login initiated with redirect URI:', redirectUri);
   res.redirect(authUrl);
 });
 
@@ -22,14 +45,15 @@ router.get('/callback', async (req, res) => {
   }
 
   try {
+    const redirectUri = req.session.oauthRedirectUri || getRedirectUri(req);
     console.log('🔐 OAuth callback initiated with code:', code.substring(0, 10) + '...');
+    console.log('🔗 Using redirect URI:', redirectUri);
     
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
       console.error('Missing Discord credentials');
       return res.redirect('/?error=missing_credentials');
     }
 
-    // Fetch Discord token with timeout
     let tokenResponse;
     try {
       const controller = new AbortController();
@@ -45,7 +69,7 @@ router.get('/callback', async (req, res) => {
           client_secret: DISCORD_CLIENT_SECRET,
           grant_type: 'authorization_code',
           code,
-          redirect_uri: DISCORD_REDIRECT_URI
+          redirect_uri: redirectUri
         }),
         signal: controller.signal
       });
