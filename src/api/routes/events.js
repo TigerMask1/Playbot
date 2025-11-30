@@ -89,6 +89,32 @@ router.get('/:serverId/list', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/:serverId/:eventId', requireAuth, async (req, res) => {
+  try {
+    const { serverId, eventId } = req.params;
+    const userId = req.session.user.id;
+    
+    const hasAccess = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_EVENTS) ||
+                      req.session.user.adminGuilds.some(g => g.id === serverId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No access' });
+    }
+    
+    const collection = await getCollection(COLLECTIONS.TENANT.EVENTS);
+    const event = await collection.findOne({ serverId, eventId });
+    
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    res.json(event);
+  } catch (error) {
+    console.error('Error getting event:', error);
+    res.status(500).json({ error: 'Failed to get event' });
+  }
+});
+
 router.post('/:serverId', requireAuth, async (req, res) => {
   try {
     const { serverId } = req.params;
