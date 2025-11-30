@@ -111,6 +111,29 @@ async function createIndexes() {
     await playerData.createIndex({ odiscordId: 1, serverId: 1 }, { unique: true });
     await playerData.createIndex({ serverId: 1 });
     
+    const characters = db.collection(COLLECTIONS.TENANT.CHARACTERS);
+    await characters.createIndex({ serverId: 1 });
+    await characters.createIndex({ serverId: 1, id: 1 }, { unique: true });
+    await characters.createIndex({ serverId: 1, isActive: 1 });
+    
+    const moves = db.collection(COLLECTIONS.TENANT.MOVES);
+    await moves.createIndex({ serverId: 1 });
+    await moves.createIndex({ serverId: 1, tier: 1 });
+    await moves.createIndex({ serverId: 1, characterName: 1 });
+    
+    const crates = db.collection(COLLECTIONS.TENANT.CRATES);
+    await crates.createIndex({ serverId: 1 });
+    await crates.createIndex({ serverId: 1, type: 1 }, { unique: true });
+    
+    const quests = db.collection(COLLECTIONS.TENANT.QUESTS);
+    await quests.createIndex({ serverId: 1 });
+    await quests.createIndex({ serverId: 1, id: 1 }, { unique: true });
+    await quests.createIndex({ serverId: 1, type: 1 });
+    
+    const jobs = db.collection(COLLECTIONS.TENANT.JOBS);
+    await jobs.createIndex({ serverId: 1 });
+    await jobs.createIndex({ serverId: 1, type: 1 }, { unique: true });
+    
     console.log('✅ Database indexes created');
   } catch (error) {
     console.error('Error creating indexes:', error);
