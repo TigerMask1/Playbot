@@ -186,12 +186,52 @@ Resources: characters, moves, crates, quests, jobs, events
 - Created API routes for all game elements
 - Built responsive dashboard UI
 
+- 2025-11-30: Phase 1 Template System Implementation
+  - Created ConfigService for centralized configuration management with caching
+  - Built comprehensive template system in src/core/templates/:
+    - characters.js (52 characters with full stats, rarities, emojis)
+    - moves.js (151 moves across low/mid/high/special tiers)
+    - crates.js (6 crate types with costs, rewards, drop rates)
+    - drops.js (drop system config with timers, costs, messages)
+    - quests.js (65 quests with requirements and rewards)
+    - jobs.js (5 job types with resources, tools, cooldowns)
+    - economy.js (currency names, daily rewards, transfers)
+    - battles.js (battle mechanics, ranks, rewards)
+    - leveling.js (XP formulas, level requirements, milestone rewards)
+    - timers.js (ALL cooldowns and intervals)
+    - messages.js (ALL bot messages and embed settings)
+    - boosters.js (ST/XP/coin boosters)
+    - minigames.js (7 minigame types with all settings)
+    - events.js (7 event types with rewards)
+    - clans.js (full clan system config)
+  - Updated all API routes to use ConfigService:
+    - characters.js, moves.js, crates.js, quests.js, jobs.js
+    - drops.js, economy.js, battles.js, events.js
+  - Implemented template versioning with automatic migration support
+  - Added seed-defaults and reset-to-defaults endpoints for all systems
+  - Custom configs preserve isCustom flag to survive template updates
+
+## Template System Architecture
+
+### ConfigService (src/services/ConfigService.js)
+- Centralized configuration loading with 60-second TTL cache
+- Template versioning with automatic migration on version mismatch
+- Methods: getCharacters, getMoves, getCrates, getQuests, getJobs, etc.
+- All seeding uses bulkWrite with upserts for idempotency
+- Custom items (isCustom: true) are preserved during template updates
+
+### Template Version Flow
+1. Server first access triggers default seeding
+2. templateVersion stored in server_configs
+3. On TEMPLATE_VERSION bump, migrations run automatically
+4. Only non-custom items are updated during migrations
+
 ## Migration Notes
 
 The original ZooBot code (index.js and related files) remains for reference.
 Integration with the new multi-tenant system will:
-1. Replace hardcoded configurations with database lookups
+1. Replace hardcoded configurations with database lookups (DONE - ConfigService)
 2. Add server context to all operations
-3. Use TenantService for configuration
+3. Use ConfigService for configuration (replaces TenantService for game config)
 4. Use CurrencyService for all currency operations
 5. Apply PermissionService for access control

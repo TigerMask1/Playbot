@@ -3,7 +3,7 @@ const router = express.Router();
 const { getCollection, COLLECTIONS } = require('../../core/database');
 const { CurrencyService, CURRENCY_ACTIONS } = require('../../services/CurrencyService');
 const { PermissionService, PERMISSIONS } = require('../../services/PermissionService');
-const TenantService = require('../../services/TenantService');
+const { ConfigService } = require('../../services/ConfigService');
 const { createAuditLog } = require('../../services/AuditService');
 const { requireAuth } = require('../middleware/auth');
 
@@ -19,12 +19,12 @@ router.get('/:serverId/config', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'No access' });
     }
     
-    const config = await TenantService.getServerConfig(serverId);
-    if (!config) {
+    const economyConfig = await ConfigService.getEconomyConfig(serverId);
+    if (!economyConfig) {
       return res.status(404).json({ error: 'Server not configured' });
     }
     
-    res.json(config.economy || {});
+    res.json(economyConfig);
   } catch (error) {
     console.error('Error getting economy config:', error);
     res.status(500).json({ error: 'Failed to get economy config' });
@@ -42,13 +42,18 @@ router.put('/:serverId/config', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'No permission to manage economy' });
     }
     
-    const result = await TenantService.updateServerConfig(
-      serverId,
-      { economy: economyConfig },
-      { id: userId, username: req.session.user.username }
-    );
+    const result = await ConfigService.updateServerConfig(serverId, { economy: economyConfig });
     
-    res.json(result);
+    await createAuditLog({
+      action: 'ECONOMY_CONFIG_UPDATED',
+      category: 'economy',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      after: economyConfig
+    });
+    
+    res.json({ success: result });
   } catch (error) {
     console.error('Error updating economy config:', error);
     res.status(500).json({ error: 'Failed to update economy config' });
@@ -188,6 +193,36 @@ router.get('/:serverId/stats', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error getting economy stats:', error);
     res.status(500).json({ error: 'Failed to get economy stats' });
+  }
+});
+
+router.post('/:serverId/reset-to-defaults', requireAuth, async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const userId = req.session.user.id;
+    
+    const canManage = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_ECONOMY);
+    if (!canManage) {
+      return res.status(403).json({ error: 'No permission to manage economy' });
+    }
+    
+    const result = await ConfigService.updateServerConfig(serverId, { economy: {} });
+    ConfigService.clearServerCache(serverId);
+    
+    const economyConfig = await ConfigService.getEconomyConfig(serverId);
+    
+    await createAuditLog({
+      action: 'ECONOMY_RESET',
+      category: 'economy',
+      userId,
+      username: req.session.user.username,
+      serverId
+    });
+    
+    res.json({ success: result, config: economyConfig });
+  } catch (error) {
+    console.error('Error resetting economy config:', error);
+    res.status(500).json({ error: 'Failed to reset economy config' });
   }
 });
 

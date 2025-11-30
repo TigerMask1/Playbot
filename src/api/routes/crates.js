@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { getCollection, COLLECTIONS } = require('../../core/database');
 const { PermissionService, PERMISSIONS } = require('../../services/PermissionService');
+const { ConfigService } = require('../../services/ConfigService');
 const { createAuditLog } = require('../../services/AuditService');
 const { requireAuth } = require('../middleware/auth');
 
 router.get('/:serverId', requireAuth, async (req, res) => {
   try {
     const { serverId } = req.params;
+    const { includeInactive } = req.query;
     const userId = req.session.user.id;
     
     const hasAccess = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_CRATES) ||
@@ -17,13 +19,43 @@ router.get('/:serverId', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'No access' });
     }
     
-    const collection = await getCollection(COLLECTIONS.TENANT.CRATES);
-    const crates = await collection.find({ serverId }).toArray();
+    if (includeInactive === 'true') {
+      const collection = await getCollection(COLLECTIONS.TENANT.CRATES);
+      const crates = await collection.find({ serverId }).toArray();
+      return res.json(crates);
+    }
     
-    res.json(crates);
+    const cratesMap = await ConfigService.getCrates(serverId);
+    res.json(Object.values(cratesMap));
   } catch (error) {
     console.error('Error getting crates:', error);
     res.status(500).json({ error: 'Failed to get crates' });
+  }
+});
+
+router.get('/:serverId/:crateType', requireAuth, async (req, res) => {
+  try {
+    const { serverId, crateType } = req.params;
+    const userId = req.session.user.id;
+    
+    const hasAccess = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_CRATES) ||
+                      req.session.user.adminGuilds.some(g => g.id === serverId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No access' });
+    }
+    
+    const cratesMap = await ConfigService.getCrates(serverId);
+    const crate = cratesMap[crateType];
+    
+    if (!crate) {
+      return res.status(404).json({ error: 'Crate not found' });
+    }
+    
+    res.json(crate);
+  } catch (error) {
+    console.error('Error getting crate:', error);
+    res.status(500).json({ error: 'Failed to get crate' });
   }
 });
 
@@ -40,11 +72,16 @@ router.post('/:serverId', requireAuth, async (req, res) => {
     
     const collection = await getCollection(COLLECTIONS.TENANT.CRATES);
     
-    const crateId = crateData.crateId || `crate_${Date.now()}`;
+    const crateType = crateData.type || `custom_${Date.now()}`;
+    
+    const existing = await collection.findOne({ serverId, type: crateType });
+    if (existing) {
+      return res.status(400).json({ error: 'Crate type already exists' });
+    }
     
     const crate = {
       serverId,
-      crateId,
+      type: crateType,
       name: crateData.name,
       emoji: crateData.emoji || '📦',
       description: crateData.description || '',
@@ -58,12 +95,15 @@ router.post('/:serverId', requireAuth, async (req, res) => {
       },
       guaranteedRewards: crateData.guaranteedRewards || [],
       bonusRewards: crateData.bonusRewards || [],
-      isActive: crateData.isActive !== false,
+      isActive: true,
+      isCustom: true,
+      templateVersion: ConfigService.getCurrentTemplateVersion(),
       createdAt: new Date(),
       updatedAt: new Date()
     };
     
     await collection.insertOne(crate);
+    ConfigService.clearServerCache(serverId);
     
     await createAuditLog({
       action: 'CRATE_CREATED',
@@ -71,7 +111,7 @@ router.post('/:serverId', requireAuth, async (req, res) => {
       userId,
       username: req.session.user.username,
       serverId,
-      targetId: crateId,
+      targetId: crateType,
       targetType: 'crate',
       after: crate
     });
@@ -83,9 +123,9 @@ router.post('/:serverId', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/:serverId/:crateId', requireAuth, async (req, res) => {
+router.put('/:serverId/:crateType', requireAuth, async (req, res) => {
   try {
-    const { serverId, crateId } = req.params;
+    const { serverId, crateType } = req.params;
     const updates = req.body;
     const userId = req.session.user.id;
     
@@ -96,20 +136,26 @@ router.put('/:serverId/:crateId', requireAuth, async (req, res) => {
     
     const collection = await getCollection(COLLECTIONS.TENANT.CRATES);
     
-    const existing = await collection.findOne({ serverId, crateId });
+    const existing = await collection.findOne({ 
+      serverId, 
+      $or: [{ type: crateType }, { crateId: crateType }]
+    });
+    
     if (!existing) {
       return res.status(404).json({ error: 'Crate not found' });
     }
     
     delete updates.serverId;
+    delete updates.type;
     delete updates.crateId;
     delete updates.createdAt;
-    updates.updatedAt = new Date();
+    delete updates.templateVersion;
     
-    await collection.updateOne(
-      { serverId, crateId },
-      { $set: updates }
-    );
+    const success = await ConfigService.updateCrate(serverId, existing.type || crateType, updates);
+    
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to update crate' });
+    }
     
     await createAuditLog({
       action: 'CRATE_UPDATED',
@@ -117,7 +163,7 @@ router.put('/:serverId/:crateId', requireAuth, async (req, res) => {
       userId,
       username: req.session.user.username,
       serverId,
-      targetId: crateId,
+      targetId: crateType,
       targetType: 'crate',
       before: existing,
       after: updates
@@ -130,9 +176,9 @@ router.put('/:serverId/:crateId', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:serverId/:crateId', requireAuth, async (req, res) => {
+router.delete('/:serverId/:crateType', requireAuth, async (req, res) => {
   try {
-    const { serverId, crateId } = req.params;
+    const { serverId, crateType } = req.params;
     const userId = req.session.user.id;
     
     const canManage = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_CRATES);
@@ -141,12 +187,98 @@ router.delete('/:serverId/:crateId', requireAuth, async (req, res) => {
     }
     
     const collection = await getCollection(COLLECTIONS.TENANT.CRATES);
-    await collection.deleteOne({ serverId, crateId });
+    
+    const existing = await collection.findOne({ 
+      serverId, 
+      $or: [{ type: crateType }, { crateId: crateType }]
+    });
+    
+    if (!existing) {
+      return res.status(404).json({ error: 'Crate not found' });
+    }
+    
+    await collection.updateOne(
+      { serverId, type: existing.type || crateType },
+      { $set: { isActive: false, deletedAt: new Date() } }
+    );
+    
+    ConfigService.clearServerCache(serverId);
+    
+    await createAuditLog({
+      action: 'CRATE_DELETED',
+      category: 'crate',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      targetId: crateType,
+      targetType: 'crate',
+      before: existing
+    });
     
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting crate:', error);
     res.status(500).json({ error: 'Failed to delete crate' });
+  }
+});
+
+router.post('/:serverId/seed-defaults', requireAuth, async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const userId = req.session.user.id;
+    
+    const canManage = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_CRATES);
+    if (!canManage) {
+      return res.status(403).json({ error: 'No permission to manage crates' });
+    }
+    
+    const cratesMap = await ConfigService.getCrates(serverId);
+    
+    await createAuditLog({
+      action: 'CRATES_SEEDED',
+      category: 'crate',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      metadata: { count: Object.keys(cratesMap).length }
+    });
+    
+    res.json({ success: true, count: Object.keys(cratesMap).length });
+  } catch (error) {
+    console.error('Error seeding crates:', error);
+    res.status(500).json({ error: 'Failed to seed crates' });
+  }
+});
+
+router.post('/:serverId/reset-to-defaults', requireAuth, async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const userId = req.session.user.id;
+    
+    const canManage = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_CRATES);
+    if (!canManage) {
+      return res.status(403).json({ error: 'No permission to manage crates' });
+    }
+    
+    const collection = await getCollection(COLLECTIONS.TENANT.CRATES);
+    await collection.deleteMany({ serverId, isCustom: { $ne: true } });
+    
+    ConfigService.clearServerCache(serverId);
+    const cratesMap = await ConfigService.getCrates(serverId);
+    
+    await createAuditLog({
+      action: 'CRATES_RESET',
+      category: 'crate',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      metadata: { count: Object.keys(cratesMap).length }
+    });
+    
+    res.json({ success: true, count: Object.keys(cratesMap).length });
+  } catch (error) {
+    console.error('Error resetting crates:', error);
+    res.status(500).json({ error: 'Failed to reset crates' });
   }
 });
 

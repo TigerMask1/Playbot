@@ -2,13 +2,57 @@ const express = require('express');
 const router = express.Router();
 const { getCollection, COLLECTIONS } = require('../../core/database');
 const { PermissionService, PERMISSIONS } = require('../../services/PermissionService');
+const { ConfigService } = require('../../services/ConfigService');
 const { createAuditLog } = require('../../services/AuditService');
 const { requireAuth } = require('../middleware/auth');
 
 router.get('/:serverId', requireAuth, async (req, res) => {
   try {
     const { serverId } = req.params;
-    const { tier } = req.query;
+    const { tier, includeInactive } = req.query;
+    const userId = req.session.user.id;
+    
+    const hasAccess = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_MOVES) ||
+                      req.session.user.adminGuilds.some(g => g.id === serverId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No access' });
+    }
+    
+    if (includeInactive === 'true') {
+      const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
+      const query = { serverId };
+      if (tier) query.tier = tier;
+      const moves = await collection.find(query).sort({ id: 1 }).toArray();
+      return res.json(moves);
+    }
+    
+    const movesOrganized = await ConfigService.getMoves(serverId);
+    
+    if (tier) {
+      if (tier === 'special') {
+        return res.json(Object.values(movesOrganized.special || {}));
+      }
+      return res.json(movesOrganized[tier] || []);
+    }
+    
+    const allMoves = [
+      ...movesOrganized.low,
+      ...movesOrganized.mid,
+      ...movesOrganized.high,
+      ...Object.values(movesOrganized.special || {})
+    ];
+    
+    res.json(allMoves);
+  } catch (error) {
+    console.error('Error getting moves:', error);
+    res.status(500).json({ error: 'Failed to get moves' });
+  }
+});
+
+router.get('/:serverId/:moveId', requireAuth, async (req, res) => {
+  try {
+    const { serverId, moveId } = req.params;
     const userId = req.session.user.id;
     
     const hasAccess = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_MOVES) ||
@@ -19,15 +63,22 @@ router.get('/:serverId', requireAuth, async (req, res) => {
     }
     
     const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
-    const query = { serverId };
-    if (tier) query.tier = tier;
+    const move = await collection.findOne({ 
+      serverId, 
+      $or: [
+        { id: parseInt(moveId) },
+        { moveId: moveId }
+      ]
+    });
     
-    const moves = await collection.find(query).toArray();
+    if (!move) {
+      return res.status(404).json({ error: 'Move not found' });
+    }
     
-    res.json(moves);
+    res.json(move);
   } catch (error) {
-    console.error('Error getting moves:', error);
-    res.status(500).json({ error: 'Failed to get moves' });
+    console.error('Error getting move:', error);
+    res.status(500).json({ error: 'Failed to get move' });
   }
 });
 
@@ -42,13 +93,7 @@ router.post('/:serverId', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'No permission to manage moves' });
     }
     
-    const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
-    
-    const moveId = `move_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const move = {
-      serverId,
-      moveId,
+    const move = await ConfigService.createMove(serverId, {
       name: moveData.name,
       damage: moveData.damage || 0,
       type: moveData.type || 'normal',
@@ -57,13 +102,12 @@ router.post('/:serverId', requireAuth, async (req, res) => {
       effects: moveData.effects || [],
       energyCost: moveData.energyCost || 0,
       cooldown: moveData.cooldown || 0,
-      characterName: moveData.characterName || null,
-      isActive: moveData.isActive !== false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      characterName: moveData.characterName || null
+    });
     
-    await collection.insertOne(move);
+    if (!move) {
+      return res.status(500).json({ error: 'Failed to create move' });
+    }
     
     await createAuditLog({
       action: 'MOVE_CREATED',
@@ -71,7 +115,7 @@ router.post('/:serverId', requireAuth, async (req, res) => {
       userId,
       username: req.session.user.username,
       serverId,
-      targetId: moveId,
+      targetId: move.id,
       targetType: 'move',
       after: move
     });
@@ -96,20 +140,30 @@ router.put('/:serverId/:moveId', requireAuth, async (req, res) => {
     
     const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
     
-    const existing = await collection.findOne({ serverId, moveId });
+    const existing = await collection.findOne({ 
+      serverId, 
+      $or: [
+        { id: parseInt(moveId) },
+        { moveId: moveId }
+      ]
+    });
+    
     if (!existing) {
       return res.status(404).json({ error: 'Move not found' });
     }
     
     delete updates.serverId;
+    delete updates.id;
     delete updates.moveId;
     delete updates.createdAt;
-    updates.updatedAt = new Date();
+    delete updates.templateVersion;
     
-    await collection.updateOne(
-      { serverId, moveId },
-      { $set: updates }
-    );
+    const id = existing.id || parseInt(moveId);
+    const success = await ConfigService.updateMove(serverId, id, updates);
+    
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to update move' });
+    }
     
     await createAuditLog({
       action: 'MOVE_UPDATED',
@@ -117,7 +171,7 @@ router.put('/:serverId/:moveId', requireAuth, async (req, res) => {
       userId,
       username: req.session.user.username,
       serverId,
-      targetId: moveId,
+      targetId: id,
       targetType: 'move',
       before: existing,
       after: updates
@@ -142,7 +196,37 @@ router.delete('/:serverId/:moveId', requireAuth, async (req, res) => {
     
     const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
     
-    await collection.deleteOne({ serverId, moveId });
+    const existing = await collection.findOne({ 
+      serverId, 
+      $or: [
+        { id: parseInt(moveId) },
+        { moveId: moveId }
+      ]
+    });
+    
+    if (!existing) {
+      return res.status(404).json({ error: 'Move not found' });
+    }
+    
+    const id = existing.id || parseInt(moveId);
+    
+    await collection.updateOne(
+      { serverId, id },
+      { $set: { isActive: false, deletedAt: new Date() } }
+    );
+    
+    ConfigService.clearServerCache(serverId);
+    
+    await createAuditLog({
+      action: 'MOVE_DELETED',
+      category: 'move',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      targetId: id,
+      targetType: 'move',
+      before: existing
+    });
     
     res.json({ success: true });
   } catch (error) {
@@ -155,18 +239,83 @@ router.get('/:serverId/tiers', requireAuth, async (req, res) => {
   try {
     const { serverId } = req.params;
     
-    const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
+    const movesOrganized = await ConfigService.getMoves(serverId);
     
-    const tiers = await collection.aggregate([
-      { $match: { serverId } },
-      { $group: { _id: '$tier', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
-    ]).toArray();
+    const tiers = [
+      { _id: 'low', count: movesOrganized.low?.length || 0 },
+      { _id: 'mid', count: movesOrganized.mid?.length || 0 },
+      { _id: 'high', count: movesOrganized.high?.length || 0 },
+      { _id: 'special', count: Object.keys(movesOrganized.special || {}).length }
+    ];
     
     res.json(tiers);
   } catch (error) {
     console.error('Error getting move tiers:', error);
     res.status(500).json({ error: 'Failed to get move tiers' });
+  }
+});
+
+router.post('/:serverId/seed-defaults', requireAuth, async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const userId = req.session.user.id;
+    
+    const canManage = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_MOVES);
+    if (!canManage) {
+      return res.status(403).json({ error: 'No permission to manage moves' });
+    }
+    
+    const moves = await ConfigService.getMoves(serverId);
+    const totalCount = (moves.low?.length || 0) + (moves.mid?.length || 0) + 
+                       (moves.high?.length || 0) + Object.keys(moves.special || {}).length;
+    
+    await createAuditLog({
+      action: 'MOVES_SEEDED',
+      category: 'move',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      metadata: { count: totalCount }
+    });
+    
+    res.json({ success: true, count: totalCount });
+  } catch (error) {
+    console.error('Error seeding moves:', error);
+    res.status(500).json({ error: 'Failed to seed moves' });
+  }
+});
+
+router.post('/:serverId/reset-to-defaults', requireAuth, async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const userId = req.session.user.id;
+    
+    const canManage = await PermissionService.hasPermission(userId, serverId, PERMISSIONS.MANAGE_MOVES);
+    if (!canManage) {
+      return res.status(403).json({ error: 'No permission to manage moves' });
+    }
+    
+    const collection = await getCollection(COLLECTIONS.TENANT.MOVES);
+    await collection.deleteMany({ serverId, isCustom: { $ne: true } });
+    
+    ConfigService.clearServerCache(serverId);
+    const moves = await ConfigService.getMoves(serverId);
+    const totalCount = (moves.low?.length || 0) + (moves.mid?.length || 0) + 
+                       (moves.high?.length || 0) + Object.keys(moves.special || {}).length;
+    
+    await createAuditLog({
+      action: 'MOVES_RESET',
+      category: 'move',
+      userId,
+      username: req.session.user.username,
+      serverId,
+      metadata: { count: totalCount }
+    });
+    
+    res.json({ success: true, count: totalCount });
+  } catch (error) {
+    console.error('Error resetting moves:', error);
+    res.status(500).json({ error: 'Failed to reset moves' });
   }
 });
 
